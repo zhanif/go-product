@@ -1,0 +1,12 @@
+root = "."  # Root directory of your Go project
+tmp_dir = "tmp"  # Temporary directory for the binary output
+
+[build]
+  bin = "tmp/main"  # Path to the binary output without .exe for cross-platform compatibility
+  cmd = "go build -o tmp/main ./main.go"  # Command to build the application
+  include_ext = ["go"]  # File extensions to watch
+
+[watch]
+  root = "."  # Root directory to watch
+  include_ext = ["go"]  # Extensions to watch
+  exclude_dir = ["tmp", "vendor", "internal"]  # Exclude unnecessary directories
