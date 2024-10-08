@@ -57,7 +57,7 @@ func setupRouter() *gin.Engine {
 		}
 	}()
 
-	productRepository := mysql.NewProductRepositoryImpl(db)
+	productRepository := mysql.NewProductRepository(db)
 	productService := service.NewProductService(productRepository)
 	productHandler := handler.NewProductHandler(productService)
 

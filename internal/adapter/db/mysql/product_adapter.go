@@ -15,7 +15,7 @@ type ProductRepositoryImpl struct {
 
 var _ port.ProductRepository = &ProductRepositoryImpl{}
 
-func NewProductRepositoryImpl(db *sql.DB) port.ProductRepository {
+func NewProductRepository(db *sql.DB) port.ProductRepository {
 	return &ProductRepositoryImpl{db: db}
 }
 
