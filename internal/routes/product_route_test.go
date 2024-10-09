@@ -70,7 +70,6 @@ func setupRouter() *gin.Engine {
 	return router
 }
 
-// API List Product - Empty
 func TestGetAllProducts_Empty(t *testing.T) {
 	router := setupRouter()
 	req, _ := http.NewRequest(http.MethodGet, "/products", nil)
@@ -83,7 +82,6 @@ func TestGetAllProducts_Empty(t *testing.T) {
 	assert.Empty(t, responseBody)
 }
 
-// API Create Product - Success
 func TestCreateProduct_Success(t *testing.T) {
 	router := setupRouter()
 	product := dto.CreateProductRequest{
@@ -101,7 +99,6 @@ func TestCreateProduct_Success(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, w.Code)
 }
 
-// API Create Product - Fail
 func TestCreateProduct_Fail(t *testing.T) {
 	router := setupRouter()
 	product := dto.CreateProductRequest{
@@ -118,7 +115,6 @@ func TestCreateProduct_Fail(t *testing.T) {
 	assert.NotEqual(t, http.StatusCreated, w.Code)
 }
 
-// API Update Product - Success
 func TestUpdateProduct_Success(t *testing.T) {
 	router := setupRouter()
 
@@ -147,7 +143,6 @@ func TestUpdateProduct_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-// API Update Product - Fail
 func TestUpdateProduct_Fail(t *testing.T) {
 	router := setupRouter()
 
