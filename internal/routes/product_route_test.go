@@ -70,16 +70,58 @@ func setupRouter() *gin.Engine {
 	return router
 }
 
-func TestGetAllProducts_Empty(t *testing.T) {
-	router := setupRouter()
+func getFirstProductID(router *gin.Engine, t *testing.T) string {
 	req, _ := http.NewRequest(http.MethodGet, "/products", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
+
+	var products []domain.Product
+	if err := json.Unmarshal(w.Body.Bytes(), &products); err != nil || len(products) == 0 {
+		t.Fatalf("Unable to fetch product data\n%v", err)
+	}
+	return products[0].ID
+}
+
+func performRequest(router *gin.Engine, method, path string, body []byte) *httptest.ResponseRecorder {
+	req, _ := http.NewRequest(method, path, bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	return w
+}
+
+func TestGetAllProducts_Empty(t *testing.T) {
+	router := setupRouter()
+	w := performRequest(router, http.MethodGet, "/products", nil)
 
 	var responseBody []domain.Product
 	err := json.Unmarshal(w.Body.Bytes(), &responseBody)
 	assert.NoError(t, err)
 	assert.Empty(t, responseBody)
+}
+
+func TestGetAllProducts_NotEmpty(t *testing.T) {
+	router := setupRouter()
+	w := performRequest(router, http.MethodGet, "/products", nil)
+
+	var responseBody []domain.Product
+	err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, responseBody)
+}
+
+func TestGetProductById_Success(t *testing.T) {
+	router := setupRouter()
+	id := getFirstProductID(router, t)
+	w := performRequest(router, http.MethodGet, fmt.Sprintf("/products/%s", id), nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestGetProductById_Fail(t *testing.T) {
+	router := setupRouter()
+	id := "invalid-id"
+	w := performRequest(router, http.MethodGet, fmt.Sprintf("/products/%s", id), nil)
+	assert.NotEqual(t, http.StatusOK, w.Code)
 }
 
 func TestCreateProduct_Success(t *testing.T) {
@@ -91,11 +133,7 @@ func TestCreateProduct_Success(t *testing.T) {
 	}
 
 	jsonValue, _ := json.Marshal(product)
-	req, _ := http.NewRequest(http.MethodPost, "/products", bytes.NewBuffer(jsonValue))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
+	w := performRequest(router, http.MethodPost, "/products", jsonValue)
 	assert.Equal(t, http.StatusCreated, w.Code)
 }
 
@@ -107,26 +145,13 @@ func TestCreateProduct_Fail(t *testing.T) {
 	}
 
 	jsonValue, _ := json.Marshal(product)
-	req, _ := http.NewRequest(http.MethodPost, "/products", bytes.NewBuffer(jsonValue))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
+	w := performRequest(router, http.MethodPost, "/products", jsonValue)
 	assert.NotEqual(t, http.StatusCreated, w.Code)
 }
 
 func TestUpdateProduct_Success(t *testing.T) {
 	router := setupRouter()
-
-	reqGet, _ := http.NewRequest(http.MethodGet, "/products", nil)
-	wGet := httptest.NewRecorder()
-	router.ServeHTTP(wGet, reqGet)
-
-	var products []domain.Product
-	if err := json.Unmarshal(wGet.Body.Bytes(), &products); err != nil || len(products) == 0 {
-		t.Fatalf("Unable to fetch product data\n%v", err)
-	}
-	id := products[0].ID
+	id := getFirstProductID(router, t)
 
 	product := dto.UpdateProductRequest{
 		Name:  "Updated Test Product",
@@ -135,69 +160,33 @@ func TestUpdateProduct_Success(t *testing.T) {
 	}
 
 	jsonValue, _ := json.Marshal(product)
-	req, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/products/%s", id), bytes.NewBuffer(jsonValue))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
+	w := performRequest(router, http.MethodPut, fmt.Sprintf("/products/%s", id), jsonValue)
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestUpdateProduct_Fail(t *testing.T) {
 	router := setupRouter()
-
-	reqGet, _ := http.NewRequest(http.MethodGet, "/products", nil)
-	wGet := httptest.NewRecorder()
-	router.ServeHTTP(wGet, reqGet)
-
-	var products []domain.Product
-	if err := json.Unmarshal(wGet.Body.Bytes(), &products); err != nil || len(products) == 0 {
-		t.Fatalf("Unable to fetch product data\n%v", err)
-	}
-	id := products[0].ID
+	id := getFirstProductID(router, t)
 
 	product := dto.UpdateProductRequest{
 		Name: "-",
 	}
 
 	jsonValue, _ := json.Marshal(product)
-	req, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/products/%s", id), bytes.NewBuffer(jsonValue))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
+	w := performRequest(router, http.MethodPut, fmt.Sprintf("/products/%s", id), jsonValue)
 	assert.NotEqual(t, http.StatusOK, w.Code)
 }
 
 func TestDeleteProduct_Success(t *testing.T) {
 	router := setupRouter()
-
-	reqGet, _ := http.NewRequest(http.MethodGet, "/products", nil)
-	wGet := httptest.NewRecorder()
-	router.ServeHTTP(wGet, reqGet)
-
-	var products []domain.Product
-	if err := json.Unmarshal(wGet.Body.Bytes(), &products); err != nil || len(products) == 0 {
-		t.Fatalf("Unable to fetch product data\n%v", err)
-	}
-	id := products[0].ID
-
-	req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("/products/%s", id), nil)
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
+	id := getFirstProductID(router, t)
+	w := performRequest(router, http.MethodDelete, fmt.Sprintf("/products/%s", id), nil)
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestDeleteProduct_Fail(t *testing.T) {
 	router := setupRouter()
-
-	id := "asdfasdf"
-	req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("/products/%s", id), nil)
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
+	id := "invalid-id"
+	w := performRequest(router, http.MethodDelete, fmt.Sprintf("/products/%s", id), nil)
 	assert.NotEqual(t, http.StatusOK, w.Code)
 }
