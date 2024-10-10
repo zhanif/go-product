@@ -42,7 +42,7 @@ func (s *ProductServiceImpl) Edit(id string, productDto dto.UpdateProductRequest
 		return err
 	}
 
-	return s.repo.Update(product)
+	return s.repo.Update(id, product)
 }
 
 func (s *ProductServiceImpl) Delete(id string) error {

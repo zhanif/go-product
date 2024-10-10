@@ -58,8 +58,8 @@ func (r *ProductRepositoryImpl) Save(product domain.Product) error {
 	return err
 }
 
-func (r *ProductRepositoryImpl) Update(product domain.Product) error {
-	_, err := r.db.Exec("UPDATE products SET name = ?, price = ?, stock = ? WHERE id = ?", product.Name, product.Price, product.Stock, product.ID)
+func (r *ProductRepositoryImpl) Update(id string, product domain.Product) error {
+	_, err := r.db.Exec("UPDATE products SET name = ?, price = ?, stock = ? WHERE id = ?", product.Name, product.Price, product.Stock, id)
 	return err
 }
 

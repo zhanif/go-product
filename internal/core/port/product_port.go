@@ -17,6 +17,6 @@ type ProductRepository interface {
 	FindById(id string) (*domain.Product, error)
 	FindAll() ([]domain.Product, error)
 	Save(product domain.Product) error
-	Update(product domain.Product) error
+	Update(id string, product domain.Product) error
 	Destroy(id string) error
 }
