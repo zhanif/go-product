@@ -40,7 +40,7 @@ func (r *ProductRepositoryImpl) FindAll() ([]domain.Product, error) {
 
 	defer rows.Close()
 
-	var products []domain.Product
+	products := []domain.Product{}
 	for rows.Next() {
 		var product domain.Product
 		if err := rows.Scan(&product.ID, &product.Name, &product.Price, &product.Stock); err != nil {

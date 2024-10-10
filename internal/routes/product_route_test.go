@@ -2,16 +2,13 @@ package routes
 
 import (
 	"bytes"
-	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"go-product/internal/adapter/db/mongodb"
 	"go-product/internal/adapter/db/mysql"
 	"go-product/internal/adapter/dto"
 	"go-product/internal/config"
 	"go-product/internal/core/domain"
-	"go-product/internal/core/middleware"
 	"go-product/internal/handler"
 	"go-product/internal/service"
 	"log"
@@ -23,8 +20,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func setupRouter() *gin.Engine {
@@ -46,25 +41,9 @@ func setupRouter() *gin.Engine {
 		log.Fatal(err)
 	}
 
-	mongoURI := config.GetMongoDBURI()
-	mongoClient, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoURI))
-	if err != nil {
-		log.Fatalf("Error connecting to MongoDB: %v", err)
-	}
-	defer func() {
-		if err = mongoClient.Disconnect(context.TODO()); err != nil {
-			log.Fatalf("Error disconnecting from MongoDB: %v", err)
-		}
-	}()
-
 	productRepository := mysql.NewProductRepository(db)
 	productService := service.NewProductService(productRepository)
 	productHandler := handler.NewProductHandler(productService)
-
-	speedTestRepo := mongodb.NewSpeedTestRepository(mongoClient)
-	speedTestService := service.NewSpeedTestService(speedTestRepo)
-
-	router.Use(middleware.SpeedTestMiddleware(speedTestService))
 	RegisterProductRoutes(router, productHandler)
 
 	return router
@@ -100,30 +79,6 @@ func TestGetAllProducts_Empty(t *testing.T) {
 	assert.Empty(t, responseBody)
 }
 
-func TestGetAllProducts_NotEmpty(t *testing.T) {
-	router := setupRouter()
-	w := performRequest(router, http.MethodGet, "/products", nil)
-
-	var responseBody []domain.Product
-	err := json.Unmarshal(w.Body.Bytes(), &responseBody)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, responseBody)
-}
-
-func TestGetProductById_Success(t *testing.T) {
-	router := setupRouter()
-	id := getFirstProductID(router, t)
-	w := performRequest(router, http.MethodGet, fmt.Sprintf("/products/%s", id), nil)
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
-func TestGetProductById_Fail(t *testing.T) {
-	router := setupRouter()
-	id := "invalid-id"
-	w := performRequest(router, http.MethodGet, fmt.Sprintf("/products/%s", id), nil)
-	assert.NotEqual(t, http.StatusOK, w.Code)
-}
-
 func TestCreateProduct_Success(t *testing.T) {
 	router := setupRouter()
 	product := dto.CreateProductRequest{
@@ -147,6 +102,30 @@ func TestCreateProduct_Fail(t *testing.T) {
 	jsonValue, _ := json.Marshal(product)
 	w := performRequest(router, http.MethodPost, "/products", jsonValue)
 	assert.NotEqual(t, http.StatusCreated, w.Code)
+}
+
+func TestGetAllProducts_NotEmpty(t *testing.T) {
+	router := setupRouter()
+	w := performRequest(router, http.MethodGet, "/products", nil)
+
+	var responseBody []domain.Product
+	err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, responseBody)
+}
+
+func TestGetProductById_Success(t *testing.T) {
+	router := setupRouter()
+	id := getFirstProductID(router, t)
+	w := performRequest(router, http.MethodGet, fmt.Sprintf("/products/%s", id), nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestGetProductById_Fail(t *testing.T) {
+	router := setupRouter()
+	id := "invalid-id"
+	w := performRequest(router, http.MethodGet, fmt.Sprintf("/products/%s", id), nil)
+	assert.NotEqual(t, http.StatusOK, w.Code)
 }
 
 func TestUpdateProduct_Success(t *testing.T) {
